@@ -80,6 +80,8 @@ dependencies {
     provided "com.taobao.android.weex_inspection:protocol:${PROTOCOL_VERSION}"
 
     provided 'com.squareup.okhttp3:okhttp:3.5.0'
+
+    provided 'com.squareup.okhttp3:okhttp-ws:3.4.1'
 }
 
 publishing {
