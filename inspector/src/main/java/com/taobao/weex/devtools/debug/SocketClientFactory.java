@@ -12,6 +12,8 @@ public class SocketClientFactory {
       return wsClient;
     } else if (ReflectionUtil.tryGetClassForName("okhttp3.ws.WebSocketListener") != null) {
       return new OkHttp3SocketClient(proxy);
+    } else if (ReflectionUtil.tryGetClassForName("okhttp3.WebSocketListener") != null) {
+        return new OkHttp35SocketClient(proxy);
     } else if (ReflectionUtil.tryGetClassForName("com.squareup.okhttp.ws.WebSocketListener") != null) {
       return new OkHttpSocketClient(proxy);
     } else {

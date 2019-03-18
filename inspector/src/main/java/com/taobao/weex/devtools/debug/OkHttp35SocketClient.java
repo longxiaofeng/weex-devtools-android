@@ -8,25 +8,21 @@ import android.util.Log;
 import com.taobao.weex.utils.WXLogUtils;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.Response;
-import okhttp3.ResponseBody;
-import okhttp3.ws.WebSocket;
-import okhttp3.ws.WebSocketCall;
-import okhttp3.ws.WebSocketListener;
-import okio.Buffer;
+import okhttp3.WebSocket;
+import okhttp3.WebSocketListener;
 
-class OkHttp3SocketClient extends SocketClient {
+public class OkHttp35SocketClient extends SocketClient {
 
-    private static final String TAG = "OkHttp3SocketClient";
+    private static final String TAG = "OkHttp35SocketClient";
 
-    public OkHttp3SocketClient(DebugServerProxy proxy) {
+    public OkHttp35SocketClient(DebugServerProxy proxy) {
         super(proxy);
     }
 
     protected void connect(String url) {
         if (mSocketClient != null) {
-            throw new IllegalStateException("OkHttp3SocketClient is already initialized.");
+            throw new IllegalStateException("OkHttp35SocketClient is already initialized.");
         }
         try {
             mSocketClient = new OkHttpClient.Builder()
@@ -37,8 +33,9 @@ class OkHttp3SocketClient extends SocketClient {
 
             if (!TextUtils.isEmpty(url)) {
                 Request.Builder requestBuilder = new Request.Builder().url(url);
-                WebSocketCall.create((OkHttpClient)mSocketClient, requestBuilder.build())
-                    .enqueue(new WebSocketListenerImpl());
+                mWebSocketListener = new WebSocketListenerImpl();
+                ((OkHttpClient)mSocketClient).newWebSocket(requestBuilder.build(),
+                    (WebSocketListener)mWebSocketListener);
             }
         } catch (Exception e) {
             WXLogUtils.e(TAG, e.getMessage());
@@ -62,12 +59,7 @@ class OkHttp3SocketClient extends SocketClient {
         if (mWebSocket == null) {
             return;
         }
-        try {
-            ((WebSocket)mWebSocket).sendMessage(RequestBody.create(WebSocket.TEXT, message));
-        } catch (Exception e) {
-            WXLogUtils.e(TAG, e.getMessage());
-
-        }
+        ((WebSocket)mWebSocket).send(message);
     }
 
     private void abort(String message, Throwable cause) {
@@ -81,7 +73,8 @@ class OkHttp3SocketClient extends SocketClient {
         }
     }
 
-    public class WebSocketListenerImpl implements WebSocketListener {
+    public class WebSocketListenerImpl extends WebSocketListener {
+
         @Override
         public void onOpen(WebSocket webSocket, Response response) {
             mWebSocket = webSocket;
@@ -91,26 +84,21 @@ class OkHttp3SocketClient extends SocketClient {
         }
 
         @Override
-        public void onFailure(IOException e, Response response) {
-            abort("Websocket onFailure", e);
+        public void onFailure(WebSocket webSocket, Throwable t, Response response) {
+            abort("Websocket exception", t);
         }
 
         @Override
-        public void onMessage(ResponseBody responseBody) throws IOException {
+        public void onMessage(WebSocket webSocket, String text) {
             try {
-                mProxy.handleMessage(responseBody.string());
-            } catch (Exception e) {
-                WXLogUtils.v(TAG, "Unexpected I/O exception processing message: " + e);
+                mProxy.handleMessage(text);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
 
         @Override
-        public void onPong(Buffer buffer) {
-
-        }
-
-        @Override
-        public void onClose(int i, String s) {
+        public void onClosing(WebSocket webSocket, int code, String reason) {
             if (mHandlerThread != null && mHandlerThread.isAlive()) {
                 mHandler.sendEmptyMessage(CLOSE_WEB_SOCKET);
             }
