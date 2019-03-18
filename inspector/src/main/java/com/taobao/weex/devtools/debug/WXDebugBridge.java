@@ -61,13 +61,6 @@ public class WXDebugBridge implements IWXBridge {
                 }
             }
         }
-
-        if (sInstance == null) {
-            Log.d("weex_debug", "WXDebugBridge==null");
-        } else {
-            Log.d("weex_debug", "WXDebugBridge!=null");
-        }
-
         return sInstance;
     }
 
