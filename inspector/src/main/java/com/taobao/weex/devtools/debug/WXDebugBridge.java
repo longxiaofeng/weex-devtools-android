@@ -4,11 +4,11 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.alibaba.fastjson.JSON;
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.RequestBody;
-import com.squareup.okhttp.Response;
+//import okhttp.MediaType;
+//import okhttp.OkHttpClient;
+//import okhttp.Request;
+//import okhttp.RequestBody;
+//import okhttp.Response;
 import com.taobao.weex.WXEnvironment;
 import com.taobao.weex.bridge.WXBridge;
 import com.taobao.weex.bridge.WXBridgeManager;
@@ -21,6 +21,7 @@ import com.taobao.weex.devtools.websocket.SimpleSession;
 import com.taobao.weex.dom.CSSShorthand;
 import com.taobao.weex.layout.ContentBoxMeasurement;
 import com.taobao.weex.utils.WXWsonJSONSwitch;
+import com.taobao.weex.bridge.ResultCallback;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,10 +42,10 @@ public class WXDebugBridge implements IWXBridge {
     private volatile SimpleSession mSession;
     private IWXBridge mOriginBridge;
     private WXDebugJsBridge mWXDebugJsBridge;
-    public static final MediaType MEDIA_TYPE_MARKDOWN
-            = MediaType.parse("application/json; charset=utf-8");
-
-    private final OkHttpClient client = new OkHttpClient();
+//    public static final MediaType MEDIA_TYPE_MARKDOWN
+//            = MediaType.parse("application/json; charset=utf-8");
+//
+//    private final OkHttpClient client = new OkHttpClient();
     private String syncCallJSURL = "";
 
     private WXDebugBridge() {
@@ -59,6 +60,12 @@ public class WXDebugBridge implements IWXBridge {
                     sInstance = new WXDebugBridge();
                 }
             }
+        }
+
+        if (sInstance == null) {
+            Log.d("weex_debug", "WXDebugBridge==null");
+        } else {
+            Log.d("weex_debug", "WXDebugBridge!=null");
         }
 
         return sInstance;
@@ -120,54 +127,55 @@ public class WXDebugBridge implements IWXBridge {
         return sendMessage(JSON.toJSONString(map));
     }
 
-    @Override
+    //@Override
     public byte[] execJSWithResult(String instanceId, String namespace, String function, WXJSObject[] args) {
+        return null;
 
-        String result = "";
-
-        ArrayList<Object> array = new ArrayList<>();
-        int argsCount = args == null ? 0 : args.length;
-        for (int i = 0; i < argsCount; i++) {
-            if (args[i] != null) {
-                if (args[i].type != WXJSObject.String) {
-                    array.add(WXWsonJSONSwitch.convertWXJSObjectDataToJSON(args[i]));
-                } else {
-                    array.add(args[i].data);
-                }
-            }
-        }
-
-        Map<String, Object> func = new HashMap<>();
-        if (TextUtils.equals(function, "registerComponents") || TextUtils.equals(function, "registerModules") || TextUtils.equals(function, "destroyInstance")) {
-            func.put(WXDebugConstants.METHOD, function);
-        } else {
-            func.put(WXDebugConstants.METHOD, WXDebugConstants.WEEX_CALL_JAVASCRIPT);
-        }
-        func.put(WXDebugConstants.ARGS, array);
-
-        Map<String, Object> map = new HashMap<>();
-        map.put(WXDebugConstants.METHOD, WXDebugConstants.METHOD_CALL_JS);
-        map.put(WXDebugConstants.PARAMS, func);
-
-        if (TextUtils.isEmpty(syncCallJSURL))
-            return new byte[0];
-
-        Request request = new Request.Builder()
-                .url(syncCallJSURL)
-                .post(RequestBody.create(MEDIA_TYPE_MARKDOWN, JSON.toJSONString(map)))
-                .build();
-
-        Response response = null;
-        try {
-            response = client.newCall(request).execute();
-            if (response.isSuccessful()) {
-                result = response.body().string();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return WXWsonJSONSwitch.convertJSONToWsonIfUseWson(result.getBytes());
+//        String result = "";
+//
+//        ArrayList<Object> array = new ArrayList<>();
+//        int argsCount = args == null ? 0 : args.length;
+//        for (int i = 0; i < argsCount; i++) {
+//            if (args[i] != null) {
+//                if (args[i].type != WXJSObject.String) {
+//                    array.add(WXWsonJSONSwitch.convertWXJSObjectDataToJSON(args[i]));
+//                } else {
+//                    array.add(args[i].data);
+//                }
+//            }
+//        }
+//
+//        Map<String, Object> func = new HashMap<>();
+//        if (TextUtils.equals(function, "registerComponents") || TextUtils.equals(function, "registerModules") || TextUtils.equals(function, "destroyInstance")) {
+//            func.put(WXDebugConstants.METHOD, function);
+//        } else {
+//            func.put(WXDebugConstants.METHOD, WXDebugConstants.WEEX_CALL_JAVASCRIPT);
+//        }
+//        func.put(WXDebugConstants.ARGS, array);
+//
+//        Map<String, Object> map = new HashMap<>();
+//        map.put(WXDebugConstants.METHOD, WXDebugConstants.METHOD_CALL_JS);
+//        map.put(WXDebugConstants.PARAMS, func);
+//
+//        if (TextUtils.isEmpty(syncCallJSURL))
+//            return new byte[0];
+//
+//        Request request = new Request.Builder()
+//                .url(syncCallJSURL)
+//                .post(RequestBody.create(MEDIA_TYPE_MARKDOWN, JSON.toJSONString(map)))
+//                .build();
+//
+//        Response response = null;
+//        try {
+//            response = client.newCall(request).execute();
+//            if (response.isSuccessful()) {
+//                result = response.body().string();
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//        return WXWsonJSONSwitch.convertJSONToWsonIfUseWson(result.getBytes());
     }
 
     @Override
@@ -328,11 +336,21 @@ public class WXDebugBridge implements IWXBridge {
         return mOriginBridge.callUpdateAttrs(instanceId, ref, attrs);
     }
 
+//   @Override
+//    public int callLayout(String s, String s1, int i, int i1, int i2, int i3, int i4, int i5, int i6) {
+//        return mOriginBridge.callLayout(s, s1, i, i1, i2, i3, i4, i5, i6);
+//    }
+
+
     @Override
-    public int callLayout(String s, String s1, int i, int i1, int i2, int i3, int i4, int i5, int i6) {
-        return mOriginBridge.callLayout(s, s1, i, i1, i2, i3, i4, i5, i6);
+    public int callLayout(String instanceId, String ref, int top, int bottom, int left, int right, int height, int width, boolean isRTL, int index) {
+        return mOriginBridge.callLayout(instanceId, ref, top, bottom, left, right, height, width, isRTL,index);
     }
 
+    @Override
+    public void execJSWithCallback(String instanceId, String namespace, String function, WXJSObject[] args, ResultCallback callback){
+        mOriginBridge.execJSWithCallback(instanceId, namespace, function, args,callback);
+    }
 
     @Override
     public int callCreateFinish(String instanceId) {

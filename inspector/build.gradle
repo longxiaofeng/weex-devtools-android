@@ -1,58 +1,84 @@
 apply plugin: 'com.android.library'
-apply plugin: 'com.github.dcendents.android-maven'
-apply plugin: 'com.jfrog.bintray'
+//apply plugin: 'com.taobao.android.mtl'
+//apply plugin: 'com.taobao.android.library'
+//这里做了仓库,发布,mtl发布等功能,具体参考:http://site.alibaba.net/atlas_build_plugin/atlas-tool-doc/gradle/publish.html
+apply from: 'http://gitlab.alibaba-inc.com/android-build-system/buildscript/raw/master/mtl-publish.gradle'
+
+
+group = 'com.taobao.android'
+version = '20190315-yk1-SNAPSHOT'
+description = """weex_inspector"""
 
 buildscript {
 
+//    apply from: 'http://gitlab.alibaba-inc.com/android-build-system/buildscript/raw/master_increment/mtl-versions-2.3-incremental-SNAPSHOT.gradle'
+    apply from: 'mtl-buildenv.gradle'
+
     repositories {
-        mavenCentral()
-        jcenter()
+        //本地库，local repository(${user.home}/.m2/repository)
+        mavenLocal()
+        maven {
+            url "http://mvnrepo.alibaba-inc.com/mvn/repository"
+        }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.0'
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
-        classpath "com.github.dcendents:android-maven-gradle-plugin:1.4.1"
+        classpath "com.android.tools.build:gradle:${ANDROID_PLUGIN_VERSION}"  //请勿修改,使用统一的版本,方便升级更新
+        classpath "com.taobao.android.gradle:mtl-plugin:${MTL_PLUGIN_VERSION}" //请勿修改,使用统一的版本,方便升级更新
+        //引入其他的插件
     }
 }
-repositories {
-//    flatDir {
-//        dirs 'libs'
-//    }
-    maven { url "http://mvnrepo.alibaba-inc.com/mvn/repository" }
-    mavenCentral()
-    jcenter()
+
+buildscript {
+    configurations.all {
+        resolutionStrategy {
+            cacheDynamicVersionsFor 0, 'seconds'
+            cacheChangingModulesFor 0, 'seconds'
+        }
+    }
 }
 
-
-
 android {
-    compileSdkVersion 23
-    buildToolsVersion '25.0.0'
+    compileSdkVersion 26
+    buildToolsVersion '26.0.0'
 
-    defaultConfig {
-        minSdkVersion 14
-        targetSdkVersion 23
-        versionCode 1
-        versionName "1.0"
-        consumerProguardFiles 'proguard-consumer.pro'
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    lintOptions {
+//        checkReleaseBuilds false
+        abortOnError false
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_7
         targetCompatibility JavaVersion.VERSION_1_7
     }
 
-    lintOptions {
-        abortOnError false
+    defaultConfig {
+        defaultPublishConfig 'release'
+        publishNonDefault true
+
+        minSdkVersion 16
+        targetSdkVersion 24
+
+        consumerProguardFiles 'proguard-rules.pro'
+
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++11"
+                abiFilters "armeabi-v7a"
+            }
+        }
     }
 
     externalNativeBuild {
-
         // Encapsulates your CMake build configurations.
         cmake {
 
             // Provides a relative path to your CMake build script.
             path "CMakeLists.txt"
+        }
+    }
+    sourceSets {
+        main {
+            res.srcDirs = ['src/main/res', 'src/main/res-homepage', 'src/main/res-update', 'src/main/res-score']
+            aidl.srcDirs = ['src/main/aidl']
         }
     }
 }
@@ -69,14 +95,14 @@ dependencies {
     }
     testCompile 'org.powermock:powermock-api-mockito:1.6.1'
     testCompile 'org.powermock:powermock-module-junit4:1.6.1'
-    provided "com.taobao.android:weex_sdk:${WEEX_SDK_VERSION}"
+    provided "com.taobao.android:weex_sdk:0.20.3.0-beta@aar"
 //    debugProvided project(path: ':weex_sdk', configuration: 'debug')
 //    releaseProvided project(path: ':weex_sdk', configuration: 'release')
     provided "com.alibaba:fastjson:${FAST_JSON_VERSION}"
     provided "com.taobao.android.weex_inspection:protocol:${PROTOCOL_VERSION}"
 
-    provided 'com.squareup.okhttp:okhttp:2.3.0'
-    provided 'com.squareup.okhttp:okhttp-ws:2.3.0'
+   // provided 'com.squareup.okhttp:okhttp:2.3.0'
+   // provided 'com.squareup.okhttp:okhttp-ws:2.3.0'
     provided 'com.android.support:recyclerview-v7:23.1.1'
 
     provided 'com.squareup.okhttp3:okhttp:3.5.0'
@@ -84,113 +110,22 @@ dependencies {
     provided 'com.squareup.okhttp3:okhttp-ws:3.4.1'
 }
 
-//apply from: rootProject.file('release.gradle')
+task wrapper(type: Wrapper) {
+    gradleVersion = '3.3'
+    distributionUrl = 'http://mirrors.taobao.net/mirror/gradle/gradle-3.3-all.zip'
+}
 
-android.libraryVariants.all { variant ->
-    def name = variant.name.capitalize()
-
-    // Ugly kludge to rename license files in the bundled commons-cli
-    // dependency so that they do not appear to describe Stetho's license.
-//    configurations.compile.each {
-//        if (it.getName() == 'commons-cli-1.2.jar') {
-//            def depJarPath = it.getPath()
-//            task "tidyCommonsCli${name}"(type: Copy) {
-//                from zipTree(depJarPath)
-//                into "build/commons-cli-tidy-${name}"
-//                rename 'LICENSE', 'commons-cli-LICENSE'
-//                rename 'NOTICE', 'commons-cli-NOTICE'
-//            }
-//        }
-//    }
-
-    task "metainf${name}"(type: Copy) {
-        from rootProject.file('LICENSE')
-        into "build/metainf-${name}/META-INF"
-    }
-
-    task "fatjar${name}"(type: Jar, dependsOn: ["jar${name}", "tidyCommonsCli${name}", "metainf${name}"]) {
-        classifier = 'fatjar'
-        from variant.javaCompile.destinationDir
-        from "build/commons-cli-tidy-${name}"
-        from "build/metainf-${name}"
+tasks.whenTaskAdded { task ->
+    if (task.name.contains("DebugAndroidTest")) {
+        task.setEnabled(false)
     }
 }
 
-
-group = 'com.taobao.android'
-description = """weex_inspector"""
-version '0.17.0'
-
-def siteUrl = 'https://github.com/weexteam/weex_devtools_android'
-def gitUrl = 'https://github.com/weexteam/weex_devtools_android.git'
-
-
-install {
-    repositories.mavenInstaller {
-        // This generates POM.xml with proper parameters
-        pom {
-            project {
-                packaging 'aar'
-                name 'weex_inspector'
-                url siteUrl
-                licenses {
-                    license {
-                        name 'The Apache Software License, Version 2.0'
-                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-                developers {
-                    developer {
-                        id 'weex alibaba'
-                        name 'weex alibaba'
-                        email 'alibabaweex@gmail.com'
-                    }
-                }
-                scm {
-                    connection gitUrl
-                    developerConnection gitUrl
-                    url siteUrl
-                }
-            }
+publishing {
+    publications {
+        maven(MavenPublication) {
+            // 如果你要部署到maven仓库的artifatcId和project名称不同，需要在这里重载
+            artifactId 'weex_inspector'
         }
     }
 }
-
-task sourcesJar(type: Jar) {
-    from('src/main/java') {
-        include '**'
-    }
-    classifier = 'sources'
-}
-
-artifacts {
-    archives sourcesJar
-}
-
-task androidJavadocs(type: Javadoc) {
-    failOnError = false
-    options.encoding = "utf-8"
-    source = android.sourceSets.main.java.srcDirs
-    ext.androidJar = "${android.sdkDirectory}/platforms/${android.compileSdkVersion}/android.jar"
-    classpath += files(ext.androidJar)
-}
-Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
-
-bintray {
-    user = properties.getProperty("bintray.user")
-    key = properties.getProperty("bintray.key")
-
-    configurations = ['archives']
-    pkg {
-        repo = 'maven'
-        name = 'weex_inspector'
-        websiteUrl = siteUrl
-        vcsUrl = gitUrl
-        licenses = ["Apache-2.0"]
-        publish = true
-    }
-}
-
-
-//apply from: 'https://raw.githubusercontent.com/blundell/release-android-library/master/android-release-aar.gradle'

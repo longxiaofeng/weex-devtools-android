@@ -1,5 +1,5 @@
-//include ":inspector"
+include ":inspector"
 
-//findProject(":inspector").name="weex_inspector"
+findProject(":inspector").name="weex_inspector"
 
 rootProject.name="weex_inspector"

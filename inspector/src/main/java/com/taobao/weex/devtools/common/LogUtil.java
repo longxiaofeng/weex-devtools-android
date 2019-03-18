@@ -21,7 +21,7 @@ import java.util.Locale;
  * Logging helper specifically for use by WeexInspector internals.
  */
 public class LogUtil {
-  private static final String TAG = "weex";
+  private static final String TAG = "";
 
   public static void e(String format, Object... args) {
     e(format(format, args));
